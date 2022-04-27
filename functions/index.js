@@ -13,7 +13,7 @@ exports.userChanged = functions.firestore
         console.log("New value", newValue);
         console.log("User", context.params.userId);
 
-        return db.collection("chats")
+        const updateUser1PrivateChat = db.collection("chats")
             .where("user1.uid", "==", context.params.userId)
             .get()
             .then((querySnapshot) => {
@@ -21,10 +21,21 @@ exports.userChanged = functions.firestore
                     doc.ref.update({
                         user1: newValue
                     })
-                    console.log(doc.id, " => ", doc.data());
-                    console.log("New value", newValue);
                 });
             })
+
+        const updateUser2PrivateChat = db.collection("chats")
+            .where("user2.uid", "==", context.params.userId)
+            .get()
+            .then((querySnapshot) => {
+                querySnapshot.forEach((doc) => {
+                    doc.ref.update({
+                        user2: newValue
+                    })
+                });
+            })
+
+        return Promise.all([updateUser1PrivateChat, updateUser2PrivateChat])
             .catch((error) => {
                 console.log("Error getting documents: ", error);
             });
