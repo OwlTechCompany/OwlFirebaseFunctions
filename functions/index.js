@@ -9,7 +9,6 @@ exports.userChanged = functions.firestore
     .document('users/{userId}')
     .onUpdate((change, context) => {
         const newValue = change.after.data();
-        const previousValue = change.before.data();
 
         console.log("New value", newValue);
         console.log("User", context.params.userId);
@@ -49,8 +48,6 @@ exports.sendMessageListenerPushNotification = functions.firestore
         console.log("chatId", context.params.chatId);
         console.log("message", message);
 
-        // const messageId = context.params.messageId;
-
         const sentBy = message.sentBy;
 
         return db.collection("chats")
@@ -61,25 +58,42 @@ exports.sendMessageListenerPushNotification = functions.firestore
                 var sender = (chatData.user1.uid == sentBy) ? chatData.user1 : chatData.user2
                 var recepient = (chatData.user1.uid == sentBy) ? chatData.user2 : chatData.user1
                 
-                const payload = {
-                    token: recepient.fcmToken,
-                    notification: {
-                        title: sender.firstName,
-                        body: message.messageText
-                    },
-                    data: {
-                        body: message.messageText,
-                    }
-                };
-                console.log("chatData", chatData);
-                console.log("sender", sender);
-                console.log("recepient", recepient);
-                console.log("payload", payload);
+                if (recepient.fcmToken != "" && recepient.fcmToken != null && typeof recepient != "undefined") {
+                    const payload = {
+                        token: recepient.fcmToken,
+                        notification: {
+                            title: sender.firstName,
+                            body: message.messageText
+                        },
+                        data: {
+                            body: message.messageText
+                        },
+                        apns: {
+                            payload: {
+                                aps: {
+                                    sound: "default"
+                                },
+                                image: sender.photo,
+                                chatId: context.params.chatId
+                            }
+                        },
+                    };
 
-                return admin.messaging().send(payload).then((response) => {
-                    console.log('Successfully sent message:', response);
-                }).catch((error) => {
-                    console.log("Error sending push: ", error);
-                });
+                    console.log("chatData", chatData);
+                    console.log("sender", sender);
+                    console.log("recepient", recepient);
+                    console.log("payload", payload);
+    
+                    return admin.messaging()
+                        .send(payload)
+                        .then((response) => {
+                            console.log('Successfully sent message:', response);
+                        })
+                        .catch((error) => {
+                            console.log("Error sending push: ", error);
+                        });
+                } else {
+                    return Promise.reject(new Error("No FCM token for recipient"))
+                }
             })
     });
