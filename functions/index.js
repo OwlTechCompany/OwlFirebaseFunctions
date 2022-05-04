@@ -74,7 +74,7 @@ exports.sendMessageListenerPushNotification = functions.firestore
                                     sound: "default"
                                 },
                                 image: sender.photo,
-                                chatId: context.params.chatId
+                                chat: chatData
                             }
                         },
                     };
